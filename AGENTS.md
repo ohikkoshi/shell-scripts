@@ -1,0 +1,40 @@
+# AGENTS.md
+
+## This repo
+
+5 standalone Bash scripts: 4 fzf-based shell functions (`fzf-cd.sh`, `fzf-git-log.sh`, `fzf-git-switch.sh`, `fzf-unity-hub.sh`) and 1 utility (`download.sh`). No build system, tests, CI, or config files exist.
+
+Scripts are MIT-licensed and bilingual (Japanese comments in the `.sh` files; mixed English headings / Japanese bullets in the README). Preserve the existing language mix when editing — don't translate.
+
+## Lint & format
+
+No config files; use defaults. All 5 scripts should pass both:
+
+- Lint: `shellcheck fzf-cd.sh fzf-git-log.sh fzf-git-switch.sh fzf-unity-hub.sh download.sh`
+- Format check: `shfmt -d *.sh` (empty diff = pass); apply with `shfmt -w *.sh`.
+- Indentation is tabs (shfmt default — do not pass `-i`).
+- shellcheck passes because the 4 fzf scripts include `# shellcheck disable=SC2016,SC2155`; keep them.
+
+## Usage model (easy to get wrong)
+
+- The 4 `fzf-*.sh` scripts are **sourced** into shell config (`.bashrc`/`.zshrc`), not executed. `download.sh` is the only standalone executable (`./download.sh -u ... -s ... -e ...`; run `-h` for options).
+- **File name ≠ function name.** Sourcing defines these functions, which is how users invoke them:
+  - `fzf-cd.sh` → `cd` (it **overrides the shell builtin** `cd`; with args it delegates to `builtin cd`, with no args it opens the fzf picker). Preserve this dual behavior on any edit.
+  - `fzf-git-log.sh` → `fzf_git_log`, `fzf-git-switch.sh` → `fzf_git_switch`, `fzf-unity-hub.sh` → `fzf_unity_hub`.
+- `download.sh`'s curl `--user-agent` is hardcoded as `download_increment.sh` (its old name) — cosmetic mismatch, not a second file / second feature.
+
+## Dependencies (external binaries, none checked at startup except `curl`)
+
+- fzf scripts: `fzf`, `delta` (git-log only), `eza` (cd only), `fd` (cd only), `ripgrep` (`rg`), `jq` (unity-hub only), plus GNU `sed`/`realpath`.
+- `download.sh`: `curl` (only dependency it verifies via `command -v`), plus `bc` (float compare for the delay) and GNU `realpath`.
+- `awk` is used by both `fzf-git-switch.sh` (branch-name extraction) and `fzf-unity-hub.sh` (field parsing); `cygpath` is Windows-only, used by `fzf-unity-hub.sh` for path conversion/launching.
+- **macOS caveat**: all five scripts need GNU coreutils shadowing the BSD ones — install `coreutils`/`gnu-sed` on macOS. Concrete break points: `fzf-cd.sh` uses `realpath -s`; every script's `sed` uses GNU-only features, e.g. `fzf-git-switch.sh` strips ANSI with `sed 's/\x1b\[[0-9;]*m//g'` (the `\x1b` hex escape has no BSD equivalent).
+
+## Editing gotchas
+
+- `fzf-git-log.sh` opens the before/after diff in an external editor via `EDITOR_CMD`; the active value is `nvim -d`, with a commented-out VS Code alternative (`# local EDITOR_CMD=(code --wait --diff)`) directly above it. Edit that one line to swap the diff viewer.
+- `download.sh` uses `set -euo pipefail` and **deletes any file whose download did not return HTTP 200** (`rm -f "$SAVE_PATH"`).
+- `fzf-unity-hub.sh` parses Unity Hub's `projects-v1.json` and handles macOS/Linux/Windows paths; the editor path template substitutes `<VERSION>` at runtime.
+- `fzf-git-switch.sh` deliberately maps a selected **tag** to a `feature/<tag>` branch (creates it if missing, switches if it exists). Don't "simplify" this tag branch — it's intentional.
+- `fzf-git-switch.sh` has commented-out remote-tag support (the `# support for remote tags` block, `remote_tags=$(...)`); it is intentionally disabled, not a bug to "fix."
+- `fzf-unity-hub.sh` uses `exit` (the other 3 fzf functions use `return`): when sourced, an unsupported OS or a missing `projects-v1.json` closes the shell. Leave as-is unless asked.
