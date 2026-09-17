@@ -34,8 +34,8 @@
 - 選択したプロジェクトに対応するUnityエディタを起動（macOS / Linux / Windows の3プラットフォーム対応）
 
 ## Dependencies
-- [bc](https://www.gnu.org/software/bc/) — `download.sh` (小数点計算)
-- [curl](https://curl.se/) — `download.sh` (ファイルダウンロード)
+- [bc](https://www.gnu.org/software/bc/)
+- [curl](https://curl.se/)
 - [delta](https://github.com/dandavison/delta)
 - [eza](https://github.com/eza-community/eza)
 - [fd](https://github.com/sharkdp/fd)
